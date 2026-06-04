@@ -1,0 +1,6 @@
+{
+  "name": "Time Keeper",
+  "description": "Premium iOS-inspired productivity application featuring a smart Task Manager, Pomodoro focus timer, Habit tracker, Calendar view, and AI productivity assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
