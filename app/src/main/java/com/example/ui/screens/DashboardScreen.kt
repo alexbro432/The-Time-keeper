@@ -499,6 +499,28 @@ fun HomeScreen(
     onNavigateToTasks: () -> Unit
 ) {
     val quote by viewModel.motivationQuote.collectAsState()
+    val worldCities by viewModel.worldCities.collectAsState()
+    val alarms by viewModel.alarms.collectAsState()
+    val countdownLeft by viewModel.countdownTimeLeft.collectAsState()
+    val countdownTotal by viewModel.countdownTotalDuration.collectAsState()
+    val countdownRunning by viewModel.isCountdownRunning.collectAsState()
+    val ai5AmScheduled by viewModel.isAi5AmNotificationScheduled.collectAsState()
+    val ai5AmCategory by viewModel.ai5AmNotificationCategory.collectAsState()
+    val ai5AmDays by viewModel.ai5AmNotificationDays.collectAsState()
+    val ai5AmQuote by viewModel.ai5AmNotificationLastQuote.collectAsState()
+    val isGeneratingAi5AmQuote by viewModel.isGeneratingAi5AmQuote.collectAsState()
+
+    var showAddAlarmForm by remember { mutableStateOf(false) }
+    var newAlarmHour by remember { mutableStateOf(7) }
+    var newAlarmMinute by remember { mutableStateOf(0) }
+    var newAlarmIsAm by remember { mutableStateOf(true) }
+    var newAlarmLabel by remember { mutableStateOf("Morning Gym Hustle") }
+    var newAlarmDays by remember { mutableStateOf(listOf("Mon", "Tue", "Wed", "Thu", "Fri")) }
+
+    var showAddCityForm by remember { mutableStateOf(false) }
+    var newCityName by remember { mutableStateOf("Paris") }
+    var newCityZone by remember { mutableStateOf("Europe/Paris") }
+    var newCityOffsetLabel by remember { mutableStateOf("UTC +1") }
 
     // Calculate dynamic scoring metrics for glass cards
     val completedCount = tasks.count { it.isCompleted }
@@ -940,15 +962,42 @@ fun HomeScreen(
         // WORLD & LOCAL TIME CHRONOMETRY (Requirement 4)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "WORLD & LOCAL REGIONAL CHRONOMETERS",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                        letterSpacing = 1.2.sp,
-                        fontSize = 10.sp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "WORLD CHRONOMETERS & CLOCKS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            letterSpacing = 1.2.sp,
+                            fontSize = 11.sp
+                        )
                     )
-                )
+                    
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (showAddCityForm) Color(0xFF007AFF).copy(alpha = 0.2f) else Color.Transparent)
+                            .clickable { showAddCityForm = !showAddCityForm }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(
+                                imageVector = if (showAddCityForm) Icons.Default.Close else Icons.Default.AddLocationAlt,
+                                contentDescription = null,
+                                tint = Color(0xFF007AFF),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (showAddCityForm) "Close" else "Pin City",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF007AFF))
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Box(
@@ -1006,6 +1055,107 @@ fun HomeScreen(
                             }
                         }
 
+                        // PIN CITY EXPANDABLE FORM
+                        AnimatedVisibility(
+                            visible = showAddCityForm,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f), RoundedCornerShape(16.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "PIN NEW GLOBAL CITY",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color.Black)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                OutlinedTextField(
+                                    value = newCityName,
+                                    onValueChange = { newCityName = it },
+                                    label = { Text("City Name (e.g. Paris)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(
+                                        value = newCityZone,
+                                        onValueChange = { newCityZone = it },
+                                        label = { Text("Zone ID (e.g. Europe/Paris)") },
+                                        modifier = Modifier.weight(1.3f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    OutlinedTextField(
+                                        value = newCityOffsetLabel,
+                                        onValueChange = { newCityOffsetLabel = it },
+                                        label = { Text("Offset (e.g. UTC +1)") },
+                                        modifier = Modifier.weight(0.7f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                // Preset suggestion buttons
+                                Text(
+                                    text = "Quick Presets:",
+                                    style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    val presets = listOf(
+                                        Triple("New York", "America/New_York", "UTC -4"),
+                                        Triple("Paris", "Europe/Paris", "UTC +1"),
+                                        Triple("Singapore", "Asia/Singapore", "UTC +8"),
+                                        Triple("Tokyo", "Asia/Tokyo", "UTC +9"),
+                                        Triple("Sydney", "Australia/Sydney", "UTC +10"),
+                                        Triple("Dubai", "Asia/Dubai", "UTC +4")
+                                    )
+                                    items(presets) { (city, zone, offset) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f))
+                                                .border(1.dp, if (newCityName == city) Color(0xFF007AFF) else Color.Transparent, RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    newCityName = city
+                                                    newCityZone = zone
+                                                    newCityOffsetLabel = offset
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(city, style = MaterialTheme.typography.labelSmall, color = if (isDark) Color.White else Color.Black)
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (newCityName.isNotBlank() && newCityZone.isNotBlank()) {
+                                            viewModel.addWorldCity(newCityName, newCityZone, newCityOffsetLabel)
+                                            showAddCityForm = false
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF)),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Add to World Clocks", color = Color.White)
+                                }
+                            }
+                        }
+
                         // Divider using safe Box line drawing pattern
                         Box(
                             modifier = Modifier
@@ -1014,82 +1164,96 @@ fun HomeScreen(
                                 .background(if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f))
                         )
 
-                        val timezones = listOf(
-                            Triple("America/Los_Angeles", "Cupertino", "UTC -7/8 (PST)"),
-                            Triple("Europe/London", "London", "UTC +0/1 (GMT)"),
-                            Triple("Asia/Kolkata", "Kolkata", "UTC +5.5 (IST)"),
-                            Triple("Asia/Tokyo", "Tokyo", "UTC +9 (JST)"),
-                            Triple("Australia/Sydney", "Sydney", "UTC +10/11 (AEST)")
-                        )
+                        // Organized columns of world clock regional blocks (Dynamic State)
+                        if (worldCities.isEmpty()) {
+                            Text(
+                                "No world clocks pinned yet.",
+                                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray),
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                worldCities.chunked(2).forEach { pair ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        pair.forEach { wc ->
+                                            val zonedDateTime = try {
+                                                java.time.ZonedDateTime.now(java.time.ZoneId.of(wc.zoneId))
+                                            } catch (e: Exception) {
+                                                null
+                                            }
+                                            val formatted = zonedDateTime?.format(java.time.format.DateTimeFormatter.ofPattern("hh:mm a")) ?: "--:--"
+                                            val hour = zonedDateTime?.hour ?: 12
+                                            val isDayTime = hour in 6..17
 
-                        // Organized columns of world clock regional blocks
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            timezones.chunked(2).forEach { pair ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    pair.forEach { (zoneId, city, offset) ->
-                                        val zonedDateTime = try {
-                                            java.time.ZonedDateTime.now(java.time.ZoneId.of(zoneId))
-                                        } catch (e: Exception) {
-                                            null
-                                        }
-                                        val formatted = zonedDateTime?.format(java.time.format.DateTimeFormatter.ofPattern("hh:mm a")) ?: "--:--"
-                                        val hour = zonedDateTime?.hour ?: 12
-                                        val isDayTime = hour in 6..17
-
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
-                                                .border(
-                                                    1.dp,
-                                                    if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f),
-                                                    RoundedCornerShape(16.dp)
-                                                )
-                                                .padding(12.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
+                                                    .border(
+                                                        1.dp,
+                                                        if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f),
+                                                        RoundedCornerShape(16.dp)
+                                                    )
+                                                    .padding(12.dp)
                                             ) {
-                                                Column {
-                                                    Text(
-                                                        text = city,
-                                                        style = MaterialTheme.typography.bodySmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = if (isDark) Color.White else Color(0xFF0F172A)
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = wc.city,
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                                            )
                                                         )
-                                                    )
-                                                    Text(
-                                                        text = offset,
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            color = Color.Gray,
-                                                            fontSize = 8.sp
+                                                        Text(
+                                                            text = wc.offsetLabel,
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                color = Color.Gray,
+                                                                fontSize = 8.sp
+                                                            )
                                                         )
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = formatted,
-                                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                                            fontWeight = FontWeight.ExtraBold,
-                                                            color = Color(0xFF007AFF)
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            text = formatted,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontWeight = FontWeight.ExtraBold,
+                                                                color = Color(0xFF007AFF)
+                                                            )
                                                         )
-                                                    )
-                                                }
+                                                    }
 
-                                                Text(
-                                                    text = if (isDayTime) "☀️" else "🌙",
-                                                    fontSize = 18.sp
-                                                )
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            text = if (isDayTime) "☀️" else "🌙",
+                                                            fontSize = 16.sp
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        IconButton(
+                                                            onClick = { viewModel.removeWorldCity(wc.id) },
+                                                            modifier = Modifier.size(24.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.DeleteOutline,
+                                                                contentDescription = "Delete clock",
+                                                                tint = Color.Red.copy(alpha = 0.7f),
+                                                                modifier = Modifier.size(16.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
-                                    }
-                                    if (pair.size < 2) {
-                                        Box(modifier = Modifier.weight(1f))
+                                        if (pair.size < 2) {
+                                            Box(modifier = Modifier.weight(1f))
+                                        }
                                     }
                                 }
                             }
@@ -1099,7 +1263,685 @@ fun HomeScreen(
             }
         }
 
-        // STRIKING METRICS OVERVIEW (2x2 Grid using clean layout)
+        // LUXURY ALARMS MANAGER SECTION
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "LUXURY SMART ALARMS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            letterSpacing = 1.2.sp,
+                            fontSize = 11.sp
+                        )
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (showAddAlarmForm) Color(0xFF34C759).copy(alpha = 0.2f) else Color.Transparent)
+                            .clickable { showAddAlarmForm = !showAddAlarmForm }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(
+                                imageVector = if (showAddAlarmForm) Icons.Default.Close else Icons.Default.AddAlarm,
+                                contentDescription = null,
+                                tint = Color(0xFF34C759),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (showAddAlarmForm) "Close" else "Add Alarm",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (isDark) Color.White.copy(alpha = 0.04f) else Color.White)
+                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E5EA), RoundedCornerShape(24.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        
+                        // ADD ALARM FORM (SLIDERS & SELECTORS FOR PREMIUM CUSTOM FEEDBACK)
+                        AnimatedVisibility(
+                            visible = showAddAlarmForm,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f), RoundedCornerShape(16.dp))
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "CREATE PREMIUM CHRONOMETRIC ALARM",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, color = Color(0xFF34C759))
+                                )
+
+                                // Hour & Minute Selection Controls
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Hour: $newAlarmHour", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold))
+                                        Slider(
+                                            value = newAlarmHour.toFloat(),
+                                            onValueChange = { newAlarmHour = it.toInt() },
+                                            valueRange = 1f..12f,
+                                            steps = 10,
+                                            colors = SliderDefaults.colors(thumbColor = Color(0xFF34C759), activeTrackColor = Color(0xFF34C759))
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Minute: ${String.format("%02d", newAlarmMinute)}", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold))
+                                        Slider(
+                                            value = newAlarmMinute.toFloat(),
+                                            onValueChange = { newAlarmMinute = it.toInt() },
+                                            valueRange = 0f..59f,
+                                            steps = 58,
+                                            colors = SliderDefaults.colors(thumbColor = Color(0xFF34C759), activeTrackColor = Color(0xFF34C759))
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // AM/PM Segment Toggle
+                                    Row(
+                                        modifier = Modifier
+                                            .border(1.dp, if (isDark) Color.White.copy(alpha = 0.2f) else Color.LightGray, RoundedCornerShape(10.dp))
+                                            .clip(RoundedCornerShape(10.dp))
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(if (newAlarmIsAm) Color(0xFF34C759) else Color.Transparent)
+                                                .clickable { newAlarmIsAm = true }
+                                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        ) {
+                                            Text("AM", color = if (newAlarmIsAm) Color.White else (if (isDark) Color.White else Color.Black), fontWeight = FontWeight.Bold)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .background(if (!newAlarmIsAm) Color(0xFF34C759) else Color.Transparent)
+                                                .clickable { newAlarmIsAm = false }
+                                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        ) {
+                                            Text("PM", color = if (!newAlarmIsAm) Color.White else (if (isDark) Color.White else Color.Black), fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    OutlinedTextField(
+                                        value = newAlarmLabel,
+                                        onValueChange = { newAlarmLabel = it },
+                                        label = { Text("Label") },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+
+                                // Day repeats
+                                Column {
+                                    Text("Repeat Days:", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
+                                            val isSelected = newAlarmDays.contains(day)
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(34.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isSelected) Color(0xFF34C759) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f))
+                                                    )
+                                                    .clickable {
+                                                        newAlarmDays = if (isSelected) newAlarmDays - day else newAlarmDays + day
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = day.take(1),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (isSelected) Color.White else (if (isDark) Color.White else Color.Black),
+                                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        viewModel.addAlarm(newAlarmHour, newAlarmMinute, newAlarmIsAm, newAlarmLabel, newAlarmDays)
+                                        showAddAlarmForm = false
+                                        newAlarmLabel = "Morning Workout"
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759)),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Set Smart Alarm", color = Color.White, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Alarms list
+                        alarms.forEach { alarm ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
+                                    .border(1.dp, if (alarm.isEnabled) Color(0xFF34C759).copy(alpha = 0.3f) else Color.Transparent, RoundedCornerShape(16.dp))
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.Bottom) {
+                                        Text(
+                                            text = "${String.format("%02d", alarm.hour)}:${String.format("%02d", alarm.minute)}",
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.Black,
+                                                color = if (alarm.isEnabled) (if (isDark) Color.White else Color(0xFF0F172A)) else Color.Gray,
+                                                fontSize = 22.sp
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = if (alarm.isAm) "AM" else "PM",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (alarm.isEnabled) Color(0xFF34C759) else Color.Gray
+                                            )
+                                        )
+                                    }
+                                    
+                                    Text(
+                                        text = alarm.label,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = if (alarm.isEnabled) (if (isDark) Color.White.copy(alpha = 0.8f) else Color.DarkGray) else Color.Gray,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    
+                                    // Display repeat days
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { d ->
+                                            val isRepeated = alarm.days.contains(d)
+                                            Text(
+                                                text = d.take(1),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = if (isRepeated) FontWeight.Black else FontWeight.Normal,
+                                                    fontSize = 9.sp,
+                                                    color = if (isRepeated && alarm.isEnabled) Color(0xFF34C759) else Color.Gray.copy(alpha = 0.6f)
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // Toggle switch
+                                    Switch(
+                                        checked = alarm.isEnabled,
+                                        onCheckedChange = { viewModel.toggleAlarmEnabled(alarm.id) },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF34C759),
+                                            uncheckedThumbColor = Color.LightGray,
+                                            uncheckedTrackColor = Color.Gray.copy(alpha = 0.2f)
+                                        ),
+                                        modifier = Modifier.scale(0.85f)
+                                    )
+
+                                    IconButton(onClick = { viewModel.deleteAlarm(alarm.id) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete alarm",
+                                            tint = Color.Red.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // CIRCULAR COUNTDOWN TIMER SECTION
+        item {
+            val progress = if (countdownTotal > 0) countdownLeft.toFloat() / countdownTotal else 0f
+            val hours = countdownLeft / 3600
+            val minutes = (countdownLeft % 3600) / 60
+            val seconds = countdownLeft % 60
+            val timeString = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "PRECISION COUNTDOWN CHRONOSTATION",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        letterSpacing = 1.2.sp,
+                        fontSize = 11.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (isDark) Color.White.copy(alpha = 0.04f) else Color.White)
+                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E5EA), RoundedCornerShape(24.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .background(Color(0xFFBF5AF2).copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, tint = Color(0xFFBF5AF2), modifier = Modifier.size(16.dp))
+                                }
+                                Column {
+                                    Text("COUNTDOWN RUNNER", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray, fontWeight = FontWeight.Bold))
+                                    Text(if (countdownRunning) "Ticking down..." else "Ready", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
+                                }
+                            }
+
+                            // Dynamic state badge
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (countdownRunning) Color(0xFFBF5AF2).copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.1f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = if (countdownRunning) "ACTIVE" else "IDLE",
+                                    color = if (countdownRunning) Color(0xFFBF5AF2) else Color.Gray,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 8.sp)
+                                )
+                            }
+                        }
+
+                        // Circular Tracker Canvas Draw
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(140.dp)
+                            ) {
+                                Canvas(modifier = Modifier.size(130.dp)) {
+                                    drawArc(
+                                        color = Color.Gray.copy(alpha = 0.08f),
+                                        startAngle = -90f,
+                                        sweepAngle = 360f,
+                                        useCenter = false,
+                                        style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                    drawArc(
+                                        color = Color(0xFFBF5AF2),
+                                        startAngle = -90f,
+                                        sweepAngle = 360f * progress,
+                                        useCenter = false,
+                                        style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                }
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = timeString,
+                                        style = MaterialTheme.typography.headlineLarge.copy(
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                            fontSize = 20.sp,
+                                            color = if (isDark) Color.White else Color.Black
+                                        )
+                                    )
+                                    Text(
+                                        text = "${(progress * 100).toInt()}% Remaining",
+                                        style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray, fontSize = 9.sp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(20.dp))
+
+                            // Action clickers & Preset sliders
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Button(
+                                        onClick = {
+                                            if (countdownRunning) viewModel.pauseCountdown() else viewModel.startCountdown()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBF5AF2)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Text(if (countdownRunning) "Pause" else "Start", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { viewModel.stopCountdown() },
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.2f) else Color.LightGray),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Text("Reset", style = MaterialTheme.typography.labelSmall, color = if (isDark) Color.White else Color.Black)
+                                    }
+                                }
+
+                                // Quick micro sliders
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    listOf(
+                                        Pair("+1m", 60),
+                                        Pair("-1m", -60),
+                                        Pair("+10s", 10),
+                                        Pair("-10s", -10)
+                                    ).forEach { (label, secs) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f))
+                                                .clickable {
+                                                    val nowLeft = countdownLeft + secs
+                                                    if (nowLeft >= 0) {
+                                                        viewModel.setCountdownDuration(nowLeft)
+                                                    }
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp), color = if (isDark) Color.White else Color.Black)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Preset switches
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                Pair("1m Pres", 60),
+                                Pair("3m Pres", 180),
+                                Pair("5m Pres", 300),
+                                Pair("15m Pres", 900),
+                                Pair("30m Pres", 1800),
+                                Pair("1h Pres", 3600)
+                            ).forEach { (label, duration) ->
+                                val isSelected = countdownTotal == duration
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) Color(0xFFBF5AF2).copy(alpha = 0.15f)
+                                            else (if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
+                                        )
+                                        .clickable { viewModel.setCountdownDuration(duration) }
+                                        .padding(vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label.replace(" Pres", ""),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 9.5.sp,
+                                            color = if (isSelected) Color(0xFFBF5AF2) else (if (isDark) Color.White.copy(alpha = 0.7f) else Color.Gray)
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // DAILY AI 5:00 AM MOTIVATION SNOOZE BROADCAST CENTER (Requirement 5)
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "DAILY AI 5:00 AM MOTIVATION SERVICE (GEMINI)",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        letterSpacing = 1.2.sp,
+                        fontSize = 11.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (isDark) Color.White.copy(alpha = 0.04f) else Color.White)
+                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E5EA), RoundedCornerShape(24.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(Color(0xFFFF9F0A).copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.Brightness5, contentDescription = null, tint = Color(0xFFFF9F0A), modifier = Modifier.size(18.dp))
+                                }
+                                Column {
+                                    Text("5:00 AM BROADCASTER", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray, fontWeight = FontWeight.Bold))
+                                    Text(if (ai5AmScheduled) "Status: Enabled" else "Status: Inactive", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
+                                }
+                            }
+
+                            // Enable Toggle
+                            Switch(
+                                checked = ai5AmScheduled,
+                                onCheckedChange = { viewModel.toggleAi5AmNotificationSchedule(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFFFF9F0A),
+                                    uncheckedThumbColor = Color.LightGray,
+                                    uncheckedTrackColor = Color.Gray.copy(alpha = 0.2f)
+                                ),
+                                modifier = Modifier.scale(0.85f)
+                            )
+                        }
+
+                        // Categories selectors
+                        Column {
+                            Text("Preferred Motivation Category:", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                val themes = listOf("Daily Mindfulness & Calm", "Hustle & Startup Grind", "Extreme Academic Focus", "Gym Athletic Hustle")
+                                items(themes) { th ->
+                                    val isSel = ai5AmCategory == th
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSel) Color(0xFFFF9F0A).copy(alpha = 0.15f)
+                                                else (if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
+                                            )
+                                            .clickable { viewModel.updateAi5AmNotificationCategory(th) }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(th, style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal), color = if (isSel) Color(0xFFFF9F0A) else (if (isDark) Color.White.copy(alpha = 0.8f) else Color.DarkGray))
+                                    }
+                                }
+                            }
+                        }
+
+                        // Broadcast days
+                        Column {
+                            Text("Broadcast Days:", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { d ->
+                                    val isAct = ai5AmDays.contains(d)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isAct) Color(0xFFFF9F0A) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f)))
+                                            .clickable { viewModel.toggleAi5AmNotificationDay(d) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(d.take(1), style = MaterialTheme.typography.labelSmall, color = if (isAct) Color.White else (if (isDark) Color.White else Color.Black), fontWeight = if (isAct) FontWeight.Bold else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Simulation button that invokes Gemini and draws smartphone notification drawer card
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Test Gemini Motivation", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
+                                Text("Requests Gemini to write and deliver a mock 5:00 AM daily notification immediately.", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray))
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            
+                            Button(
+                                onClick = { viewModel.simulateAi5AmNotificationBroadcast() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9F0A)),
+                                shape = RoundedCornerShape(10.dp),
+                                enabled = !isGeneratingAi5AmQuote,
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    if (isGeneratingAi5AmQuote) {
+                                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp)
+                                    } else {
+                                        Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                    }
+                                    Text("Test", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                                }
+                            }
+                        }
+
+                        // HIGH DENSITY NOTIFICATION DRAWER SIMULATOR POPUP (Fascinating UI effect!)
+                        AnimatedVisibility(
+                            visible = ai5AmQuote != null || isGeneratingAi5AmQuote,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
+                                    .border(1.2.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    // Notification Header (Apple notification banner style)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            // Circular app logo
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Brush.linearGradient(colors = listOf(Color(0xFF007AFF), Color(0xFF5856D6)))),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("🕒", fontSize = 10.sp)
+                                            }
+                                            Text(
+                                                text = "TIME KEEPER AI SECURE SERVICE",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, color = Color.White.copy(alpha = 0.8f), fontSize = 8.5.sp, letterSpacing = 0.5.sp)
+                                            )
+                                        }
+                                        Text("5:00 AM BROADCAST", style = MaterialTheme.typography.labelSmall.copy(color = Color.LightGray, fontSize = 7.5.sp))
+                                    }
+
+                                    // Notification Body
+                                    if (isGeneratingAi5AmQuote) {
+                                        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text("Gemini is composing your personal daily motivational quote...", style = MaterialTheme.typography.labelSmall.copy(color = Color.White.copy(alpha = 0.7f)))
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            LinearProgressIndicator(color = Color(0xFFFF9F0A), trackColor = Color.Gray, modifier = Modifier.fillMaxWidth().height(2.dp))
+                                        }
+                                    } else if (ai5AmQuote != null) {
+                                        Column {
+                                            Text(text = "🌅 Today's 5:00 AM AI Focus Prompt", style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFFFF9F0A), fontWeight = FontWeight.Black))
+                                            Text(
+                                                text = ai5AmQuote!!,
+                                                style = MaterialTheme.typography.bodySmall.copy(color = Color.White, fontWeight = FontWeight.Bold, lineHeight = 16.sp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // STRIKING METRICS OVERVIEW (2x2 Grid using clean layout)layout)
         item {
             Text(
                 "Productivity Overview",
