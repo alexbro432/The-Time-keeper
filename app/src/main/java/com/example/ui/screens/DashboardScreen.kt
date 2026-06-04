@@ -315,27 +315,28 @@ fun TimeKeeperBottomBar(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .shadow(16.dp, RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), clip = false)
+            .shadow(16.dp, RoundedCornerShape(24.dp), clip = false)
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = if (isDark) {
-                        listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)
+                        listOf(Color.White.copy(alpha = 0.15f), Color.Transparent)
                     } else {
-                        listOf(Color.White.copy(alpha = 0.8f), Color.Black.copy(alpha = 0.05f))
+                        listOf(Color.White.copy(alpha = 0.9f), Color.Black.copy(alpha = 0.05f))
                     }
                 ),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                shape = RoundedCornerShape(24.dp)
             ),
-        color = if (isDark) Color(0xFF0F172A).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f),
+        color = if (isDark) Color(0xFF0F172A).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.9f),
         tonalElevation = 8.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+                .padding(vertical = 8.dp, horizontal = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             val menu = listOf(
@@ -351,32 +352,54 @@ fun TimeKeeperBottomBar(
             menu.forEach { (name, icon) ->
                 val isSelected = activeTab == name
                 val animScale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.15f else 1.0f,
+                    targetValue = if (isSelected) 1.05f else 1.0f,
                     animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
                 )
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Box(
                     modifier = Modifier
                         .scale(animScale)
-                        .clickable { onTabSelected(name) }
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = name,
-                        tint = if (isSelected) Color(0xFF007AFF) else Color(0xFF8E8E93),
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color(0xFF007AFF) else Color(0xFF8E8E93)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (isSelected) {
+                                Color(0xFF007AFF).copy(alpha = 0.12f)
+                            } else {
+                                Color.Transparent
+                            }
                         )
-                    )
+                        .clickable { onTabSelected(name) }
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = name,
+                            tint = if (isSelected) Color(0xFF007AFF) else if (isDark) Color.White.copy(alpha = 0.55f) else Color(0xFF64748B),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        AnimatedVisibility(
+                            visible = isSelected,
+                            enter = fadeIn(animationSpec = tween(150)) + expandHorizontally(),
+                            exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally()
+                        ) {
+                            Row {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF007AFF)
+                                    ),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -614,6 +637,306 @@ fun HomeScreen(
             }
         }
 
+        // DYNAMIC INTERACTIVE CHROME FOCUS TIMER
+        item {
+            val timerLeft by viewModel.pomodoroTimeLeft.collectAsState()
+            val timerTotal by viewModel.pomodoroTotalDuration.collectAsState()
+            val timerActiveType by viewModel.pomodoroActiveType.collectAsState()
+            val timerRunning by viewModel.isPomodoroRunning.collectAsState()
+
+            val progress = if (timerTotal > 0) timerLeft.toFloat() / timerTotal else 0f
+            val minutes = timerLeft / 60
+            val seconds = timerLeft % 60
+            val formattedTime = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        if (isDark) Color.White.copy(alpha = 0.04f) else Color.White,
+                        RoundedCornerShape(24.dp)
+                    )
+                    .border(
+                        1.dp,
+                        if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E5EA),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .padding(16.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(
+                                        color = when (timerActiveType) {
+                                            "Focus" -> Color(0xFF007AFF).copy(alpha = 0.15f)
+                                            "ShortBreak" -> Color(0xFF34C759).copy(alpha = 0.15f)
+                                            else -> Color(0xFFFF9F0A).copy(alpha = 0.15f)
+                                        },
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = when (timerActiveType) {
+                                        "Focus" -> Color(0xFF007AFF)
+                                        "ShortBreak" -> Color(0xFF34C759)
+                                        else -> Color(0xFFFF9F0A)
+                                    },
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "LIVE INTERACTIVE TIMER",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        letterSpacing = 1.sp,
+                                        fontSize = 10.sp
+                                    )
+                                )
+                                Text(
+                                    text = when (timerActiveType) {
+                                        "Focus" -> "Deep Focus Block"
+                                        "ShortBreak" -> "Short Rest Break"
+                                        else -> "Long Rest Break"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.DarkGray
+                                    )
+                                )
+                            }
+                        }
+
+                        // Active status pill
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (timerRunning) Color(0xFF34C759).copy(alpha = 0.15f)
+                                    else Color.Gray.copy(alpha = 0.15f)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (timerRunning) "ACTIVE" else "READY",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Black,
+                                    color = if (timerRunning) Color(0xFF34C759) else Color.Gray,
+                                    fontSize = 8.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // Countdown clock big layout
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Circular micro indicator
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(54.dp)
+                            ) {
+                                Canvas(modifier = Modifier.size(50.dp)) {
+                                    drawArc(
+                                        color = Color.Gray.copy(alpha = 0.1f),
+                                        startAngle = -90f,
+                                        sweepAngle = 360f,
+                                        useCenter = false,
+                                        style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                    drawArc(
+                                        color = when (timerActiveType) {
+                                            "Focus" -> Color(0xFF007AFF)
+                                            "ShortBreak" -> Color(0xFF34C759)
+                                            else -> Color(0xFFFF9F0A)
+                                        },
+                                        startAngle = -90f,
+                                        sweepAngle = 360f * progress,
+                                        useCenter = false,
+                                        style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                }
+                                Icon(
+                                    imageVector = if (timerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (isDark) Color.White else Color.Black,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column {
+                                Text(
+                                    text = formattedTime,
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                        fontSize = 28.sp,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                                        letterSpacing = (-1).sp
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                LinearProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier
+                                        .width(120.dp)
+                                        .height(3.dp)
+                                        .clip(RoundedCornerShape(2.dp)),
+                                    color = when (timerActiveType) {
+                                        "Focus" -> Color(0xFF007AFF)
+                                        "ShortBreak" -> Color(0xFF34C759)
+                                        else -> Color(0xFFFF9F0A)
+                                    },
+                                    trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.3f),
+                                )
+                            }
+                        }
+
+                        // Controllers Column
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Reset
+                            OutlinedButton(
+                                onClick = { viewModel.stopPomodoro() },
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.2f) else Color.LightGray),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                modifier = Modifier.height(40.dp)
+                            ) {
+                                Text("Reset", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = if (isDark) Color.White else Color.Black)
+                            }
+
+                            // Start/Pause Button (Dynamic color)
+                            Button(
+                                onClick = {
+                                    if (timerRunning) {
+                                        viewModel.pausePomodoro()
+                                    } else {
+                                        viewModel.startPomodoro()
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = when (timerActiveType) {
+                                        "Focus" -> Color(0xFF007AFF)
+                                        "ShortBreak" -> Color(0xFF34C759)
+                                        else -> Color(0xFFFF9F0A)
+                                    }
+                                ),
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                modifier = Modifier.height(40.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(
+                                        imageVector = if (timerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = if (timerRunning) "Pause" else "Start",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Preset Quick Switchers
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            Triple("25m Focus", 25, "Focus"),
+                            Triple("5m Break", 5, "ShortBreak"),
+                            Triple("15m Rest", 15, "LongBreak")
+                        ).forEach { (label, minutes, type) ->
+                            val isActiveConfig = timerActiveType == type && (timerTotal / 60) == minutes
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isActiveConfig) {
+                                            when (type) {
+                                                "Focus" -> Color(0xFF007AFF).copy(alpha = 0.15f)
+                                                "ShortBreak" -> Color(0xFF34C759).copy(alpha = 0.15f)
+                                                else -> Color(0xFFFF9F0A).copy(alpha = 0.15f)
+                                            }
+                                        } else {
+                                            if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f)
+                                        }
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isActiveConfig) {
+                                            when (type) {
+                                                "Focus" -> Color(0xFF007AFF)
+                                                "ShortBreak" -> Color(0xFF34C759)
+                                                else -> Color(0xFFFF9F0A)
+                                            }
+                                        } else {
+                                            Color.Transparent
+                                        },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable {
+                                        viewModel.setPomodoroTimer(minutes, type)
+                                    }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isActiveConfig) {
+                                            when (type) {
+                                                "Focus" -> Color(0xFF007AFF)
+                                                "ShortBreak" -> Color(0xFF34C759)
+                                                else -> Color(0xFFFF9F0A)
+                                            }
+                                        } else {
+                                            if (isDark) Color.White.copy(alpha = 0.6f) else Color.Gray
+                                        },
+                                        fontSize = 10.sp
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // WORLD & LOCAL TIME CHRONOMETRY (Requirement 4)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -627,110 +950,147 @@ fun HomeScreen(
                     )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
+
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
-                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(if (isDark) Color.White.copy(alpha = 0.04f) else Color.White)
+                        .border(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E5EA), RoundedCornerShape(24.dp))
+                        .padding(16.dp)
                 ) {
-                    // Local chronometer
-                    Column(modifier = Modifier.weight(1.3f)) {
-                        Text(
-                            text = "LOCAL CHRONO",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF007AFF)
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = realTimeClock.ifEmpty { "Measuring..." },
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A),
-                                letterSpacing = (-0.5).sp,
-                                fontSize = 18.sp
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        val localOffset = try { java.time.ZoneId.systemDefault().id } catch(e: Exception) { "GMT" }
-                        Text(
-                            text = "TZ: $localOffset",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                fontSize = 10.sp
-                            )
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(45.dp)
-                            .background(if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f))
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // World chronometer horizontal flow
-                    LazyRow(
-                        modifier = Modifier.weight(2f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val format = java.time.format.DateTimeFormatter.ofPattern("hh:mm a")
-                        val timezones = listOf(
-                            Triple("Cupertino", "America/Los_Angeles", "PST/PDT"),
-                            Triple("London", "Europe/London", "GMT/BST"),
-                            Triple("Tokyo", "Asia/Tokyo", "JST"),
-                            Triple("Sydney", "Australia/Sydney", "AEST/AEDT"),
-                            Triple("Kolkata", "Asia/Kolkata", "IST")
-                        )
-                        items(timezones) { (city, zoneId, label) ->
-                            val timeStr = try {
-                                java.time.ZonedDateTime.now(java.time.ZoneId.of(zoneId)).format(format)
-                            } catch (e: Exception) {
-                                "--:--"
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Header / Local Zone Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = "LOCAL REGIONAL TIME",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF007AFF),
+                                        fontSize = 9.sp,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = realTimeClock.ifEmpty { "Measuring..." },
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                                        fontSize = 20.sp,
+                                        letterSpacing = (-0.5).sp
+                                    )
+                                )
                             }
+
+                            val localZoneId = try { java.time.ZoneId.systemDefault().id } catch (e: Exception) { "GMT" }
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.03f))
-                                    .border(
-                                        1.dp,
-                                        if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.06f),
-                                        RoundedCornerShape(14.dp)
-                                    )
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF007AFF).copy(alpha = 0.12f))
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = city,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFF007AFF),
-                                            fontSize = 9.sp
-                                        )
+                                Text(
+                                    text = "ZONE: $localZoneId",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF007AFF),
+                                        fontSize = 9.5.sp
                                     )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = timeStr,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDark) Color.White else Color(0xFF0F172A),
-                                            fontSize = 12.sp
-                                        )
-                                    )
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = Color.Gray,
-                                            fontSize = 8.sp
-                                        )
-                                    )
+                                )
+                            }
+                        }
+
+                        // Divider using safe Box line drawing pattern
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f))
+                        )
+
+                        val timezones = listOf(
+                            Triple("America/Los_Angeles", "Cupertino", "UTC -7/8 (PST)"),
+                            Triple("Europe/London", "London", "UTC +0/1 (GMT)"),
+                            Triple("Asia/Kolkata", "Kolkata", "UTC +5.5 (IST)"),
+                            Triple("Asia/Tokyo", "Tokyo", "UTC +9 (JST)"),
+                            Triple("Australia/Sydney", "Sydney", "UTC +10/11 (AEST)")
+                        )
+
+                        // Organized columns of world clock regional blocks
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            timezones.chunked(2).forEach { pair ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    pair.forEach { (zoneId, city, offset) ->
+                                        val zonedDateTime = try {
+                                            java.time.ZonedDateTime.now(java.time.ZoneId.of(zoneId))
+                                        } catch (e: Exception) {
+                                            null
+                                        }
+                                        val formatted = zonedDateTime?.format(java.time.format.DateTimeFormatter.ofPattern("hh:mm a")) ?: "--:--"
+                                        val hour = zonedDateTime?.hour ?: 12
+                                        val isDayTime = hour in 6..17
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.02f))
+                                                .border(
+                                                    1.dp,
+                                                    if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .padding(12.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text(
+                                                        text = city,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isDark) Color.White else Color(0xFF0F172A)
+                                                        )
+                                                    )
+                                                    Text(
+                                                        text = offset,
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            color = Color.Gray,
+                                                            fontSize = 8.sp
+                                                        )
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = formatted,
+                                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            color = Color(0xFF007AFF)
+                                                        )
+                                                    )
+                                                }
+
+                                                Text(
+                                                    text = if (isDayTime) "☀️" else "🌙",
+                                                    fontSize = 18.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (pair.size < 2) {
+                                        Box(modifier = Modifier.weight(1f))
+                                    }
                                 }
                             }
                         }
