@@ -36,7 +36,9 @@ data class Alarm(
     val isAm: Boolean,
     val isEnabled: Boolean = true,
     val label: String = "Wake Up",
-    val days: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri")
+    val days: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri"),
+    val sound: String = "Serene Forest Spark",
+    val smartInterval: Int = 10
 )
 
 data class WorldCity(
@@ -204,9 +206,16 @@ class TimeKeeperViewModel(
     }
 
     // --- Alarm Actions ---
-    fun addAlarm(hour: Int, minute: Int, isAm: Boolean, label: String, days: List<String>) {
-        val newAlarm = Alarm(hour = hour, minute = minute, isAm = isAm, label = label, days = days)
+    fun addAlarm(hour: Int, minute: Int, isAm: Boolean, label: String, days: List<String>, sound: String = "Serene Forest Spark", smartInterval: Int = 10) {
+        val newAlarm = Alarm(hour = hour, minute = minute, isAm = isAm, label = label, days = days, sound = sound, smartInterval = smartInterval)
         alarms.value = alarms.value + newAlarm
+        saveAlarmsToPrefs()
+    }
+
+    fun updateAlarm(updated: Alarm) {
+        alarms.value = alarms.value.map {
+            if (it.id == updated.id) updated else it
+        }
         saveAlarmsToPrefs()
     }
 

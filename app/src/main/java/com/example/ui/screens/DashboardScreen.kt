@@ -67,7 +67,7 @@ fun DashboardScreen(viewModel: TimeKeeperViewModel) {
     val calendarEvents by viewModel.calendarEvents.collectAsState()
     val focusLogs by viewModel.focusLogs.collectAsState()
 
-    var activeTab by remember { mutableStateOf("Home") } // "Home", "Tasks", "Focus", "Habits", "Calendar", "Coach", "Settings"
+    var activeTab by remember { mutableStateOf("Home") } // "Home", "Alarms", "Tasks", "Focus", "Habits", "Calendar", "Coach", "Settings"
 
     // Dialog flags
     var showAddTaskDialog by remember { mutableStateOf(false) }
@@ -253,6 +253,7 @@ fun TimeKeeperSidebar(
             // Sidebar items
             val menu = listOf(
                 Pair("Home", Icons.Default.GridView),
+                Pair("Alarms", Icons.Default.Alarm),
                 Pair("Tasks", Icons.Default.TaskAlt),
                 Pair("Focus", Icons.Default.Timer),
                 Pair("Habits", Icons.Default.CheckCircleOutline),
@@ -335,12 +336,14 @@ fun TimeKeeperBottomBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 10.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(vertical = 8.dp, horizontal = 6.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val menu = listOf(
                 Pair("Home", Icons.Default.GridView),
+                Pair("Alarms", Icons.Default.Alarm),
                 Pair("Tasks", Icons.Default.TaskAlt),
                 Pair("Focus", Icons.Default.Timer),
                 Pair("Habits", Icons.Default.CheckCircleOutline),
@@ -438,6 +441,11 @@ fun TabContent(
                 focusLogs = focusLogs,
                 viewModel = viewModel,
                 onNavigateToTasks = { }
+            )
+
+            "Alarms" -> AlarmsScreen(
+                viewModel = viewModel,
+                isDark = isDark
             )
 
             "Tasks" -> TasksScreen(
